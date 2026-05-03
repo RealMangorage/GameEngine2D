@@ -2,10 +2,10 @@ package org.mangorage.game.world.registeries;
 
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.entity.EntityType;
-import org.mangorage.game.world.entity.Spawner;
-import org.mangorage.game.world.entity.Splitter;
-import org.mangorage.game.world.entity.Trash;
-import org.mangorage.game.world.entity.RelayBox;
+import org.mangorage.game.world.entity.io.Spawner;
+import org.mangorage.game.world.entity.io.Splitter;
+import org.mangorage.game.world.entity.io.Trash;
+import org.mangorage.game.world.entity.io.RelayBox;
 
 import java.util.ArrayList;
 import java.util.List;

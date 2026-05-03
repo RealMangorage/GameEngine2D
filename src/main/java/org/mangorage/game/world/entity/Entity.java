@@ -2,7 +2,7 @@ package org.mangorage.game.world.entity;
 
 import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
-import org.mangorage.game.world.misc.BoundingBox;
+import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.World;
 
 import java.awt.*;

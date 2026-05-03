@@ -1,8 +1,8 @@
-package org.mangorage.game.world.entity;
+package org.mangorage.game.world.entity.io;
 
 import org.mangorage.game.render.RenderContext;
-import org.mangorage.game.world.misc.BoundingBox;
-import org.mangorage.game.world.misc.Item;
+import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.item.Item;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.registeries.Entities;
 

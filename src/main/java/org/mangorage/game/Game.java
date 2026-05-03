@@ -3,9 +3,10 @@ package org.mangorage.game;
 import org.mangorage.game.input.GameMouseEvent;
 import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
-import org.mangorage.game.world.misc.Camera;
+import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Camera;
 import org.mangorage.game.world.misc.InputHandler;
-import org.mangorage.game.world.misc.Location;
+import org.mangorage.game.world.pos.Location;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.misc.PlacingMode;
@@ -40,6 +41,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
     private double lastCheckedInputs = 0;
 
     private Entity selected = null;
+
     private int selectedType = 0;
     private PlacingMode placingMode = PlacingMode.OFF;
 
@@ -238,7 +240,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
         // This uses the original 'graphics' object which is still in screen space
         screenContext.submit(g -> {
             g.setColor(Color.BLUE);
-            g.drawString("Selected: " +  (this.selected == null ? "NONE" : selected.getType().getName()), 10, 20);
+            g.drawString("Selected: " +  (this.selected == null ? "NONE" : (selected.getType().getName() + " " + selected.getBoundingBox().format())), 10, 20);
             g.drawString("Selected Type: " + (selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size() ? Entities.ENTITY_TYPES.get(selectedType).getName() : "None"), 10, 40);
             g.drawString("Placing Mode: " + (placingMode) + " (Toggle with F4)", 10, 60);
         });

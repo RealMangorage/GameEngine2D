@@ -2,11 +2,12 @@ package org.mangorage.game.world;
 
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.entity.Entity;
-import org.mangorage.game.world.entity.RelayBox;
-import org.mangorage.game.world.entity.Spawner;
-import org.mangorage.game.world.entity.Trash;
+import org.mangorage.game.world.entity.io.RelayBox;
+import org.mangorage.game.world.entity.io.Spawner;
+import org.mangorage.game.world.entity.io.Trash;
 import org.mangorage.game.world.misc.InputHandler;
-import org.mangorage.game.world.misc.Location;
+import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Location;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
@@ -83,6 +84,8 @@ public final class World {
                     var bb = e.getBoundingBox();
                     g.drawRect(bb.x(), bb.y(), bb.width(), bb.height());
                 }
+
+
             });
         }
     }

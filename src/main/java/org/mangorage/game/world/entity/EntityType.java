@@ -1,7 +1,7 @@
 package org.mangorage.game.world.entity;
 
-import org.mangorage.game.world.misc.BoundingBox;
-import org.mangorage.game.world.misc.Location;
+import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Location;
 import org.mangorage.game.world.World;
 
 public final class EntityType<T extends Entity> {

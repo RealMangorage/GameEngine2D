@@ -1,22 +1,24 @@
-package org.mangorage.game.world.entity;
+package org.mangorage.game.world.entity.io;
 
 import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
-import org.mangorage.game.world.misc.BoundingBox;
+import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
 
-public final class RelayBox extends EntityIO {
-    public RelayBox(World world, BoundingBox box) {
+public final class Splitter extends EntityIO {
+
+    public Splitter(World world, BoundingBox box) {
+        // Inputs: 1, Outputs: 4, Speed: Fast, Spacing: 0.18
         super(
-                Entities.RELAY_BOX_ENTITY_TYPE,
+                Entities.SPLITTER_ENTITY_TYPE,
                 world,
                 box,
                 1,
-                1,
-                1.0/225.0,
+                4,
+                1.0 / 23.0,
                 0.18
         );
     }
@@ -31,11 +33,17 @@ public final class RelayBox extends EntityIO {
 
     @Override
     public void render(RenderContext ctx) {
-        renderConnectionsAndItems(ctx, Color.GRAY, Color.YELLOW, 16);
+        // Custom colors for Splitter: Orange items, 12px size
+        renderConnectionsAndItems(ctx, Color.GRAY, Color.ORANGE, 12);
+
         ctx.submit(g -> {
             var b = getBoundingBox();
-            g.setColor(Color.DARK_GRAY);
+            g.setColor(new Color(60, 60, 100));
             g.fillRect(b.x(), b.y(), b.width(), b.height());
+
+            g.setColor(Color.WHITE);
+            g.drawRect(b.x(), b.y(), b.width(), b.height());
+            g.drawString("S", b.x() + 4, b.y() + 12);
         });
     }
 }

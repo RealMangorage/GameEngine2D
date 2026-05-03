@@ -1,4 +1,4 @@
-package org.mangorage.game.world.misc;
+package org.mangorage.game.world.pos;
 
 public class Camera {
 

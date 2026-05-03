@@ -1,25 +1,22 @@
-package org.mangorage.game.world.entity;
+package org.mangorage.game.world.entity.io;
 
 import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
-import org.mangorage.game.world.misc.BoundingBox;
-import org.mangorage.game.world.misc.Item;
+import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
 
-public final class Spawner extends EntityIO {
-
-    public Spawner(World world, BoundingBox box) {
-        // Inputs: 0, Outputs: 1, Speed: ~5 sec, Spacing: 0.18
+public final class RelayBox extends EntityIO {
+    public RelayBox(World world, BoundingBox box) {
         super(
-                Entities.SPAWNER_ENTITY_TYPE,
+                Entities.RELAY_BOX_ENTITY_TYPE,
                 world,
                 box,
-                0,
                 1,
-                1.0 / 215.0,
+                1,
+                1.0/225.0,
                 0.18
         );
     }
@@ -29,23 +26,15 @@ public final class Spawner extends EntityIO {
         if (mouseButton == MouseButton.MIDDLE) {
             outputs.clear();
             items.clear();
-            return;
-        }
-
-        // Manual spawn logic: ensure there is a connection and room at the entrance
-        if (!outputs.isEmpty() && canAcceptNewItem()) {
-            // We use the same internal logic to queue an item
-            acceptItem(new Item("MangoItem"));
         }
     }
 
     @Override
     public void render(RenderContext ctx) {
         renderConnectionsAndItems(ctx, Color.GRAY, Color.YELLOW, 16);
-
         ctx.submit(g -> {
             var b = getBoundingBox();
-            g.setColor(Color.BLUE);
+            g.setColor(Color.DARK_GRAY);
             g.fillRect(b.x(), b.y(), b.width(), b.height());
         });
     }
