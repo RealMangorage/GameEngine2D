@@ -196,7 +196,14 @@ public class Game extends Canvas implements Runnable, InputHandler {
                     selected = entity;
                 }
 
-                entity.onClick(selected, button);
+                entity.onClick(button);
+
+                if (selected != null) {
+
+
+                    selected.onClickWithSelected(selected, entity);
+                }
+
             } else if (button == MouseButton.LEFT) {
                 if (placingMode == PlacingMode.PLACE) {
                     world.addEntity(
@@ -216,31 +223,27 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
         Graphics2D graphics = (Graphics2D) bs.getDrawGraphics();
 
-        // 1. CLEAR BACKGROUND
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, width, height);
 
-        // 2. RENDER WORLD (Bottom Layer)
-        // We create a copy of the graphics object to isolate the World Transform
-        Graphics2D worldGraphics = (Graphics2D) graphics.create();
-        worldGraphics.scale(camera.getZoom(), camera.getZoom());
-        worldGraphics.translate(-camera.getX(), -camera.getY());
+        screenContext.render(graphics);
+
+        graphics.scale(camera.getZoom(), camera.getZoom());
+        graphics.translate(-camera.getX(), -camera.getY());
 
         world.render(gameContext);
-        gameContext.render(worldGraphics);
 
-        worldGraphics.dispose(); // Always dispose copies when done
 
         // 3. RENDER SCREEN UI (Top Layer)
         // This uses the original 'graphics' object which is still in screen space
         screenContext.submit(g -> {
             g.setColor(Color.BLUE);
-            g.drawString("Selected: " + selected, 10, 20);
+            g.drawString("Selected: " +  (this.selected == null ? "NONE" : selected.getType().getName()), 10, 20);
             g.drawString("Selected Type: " + (selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size() ? Entities.ENTITY_TYPES.get(selectedType).getName() : "None"), 10, 40);
             g.drawString("Placing Mode: " + (placingMode) + " (Toggle with F4)", 10, 60);
         });
 
-        screenContext.render(graphics);
+        gameContext.render(graphics);
 
         // FINALIZE
         graphics.dispose();

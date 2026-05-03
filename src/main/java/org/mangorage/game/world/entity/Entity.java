@@ -38,12 +38,11 @@ public abstract class Entity {
         );
     }
 
-    /**
-     *
-     * @param selected -> Selected Entity from player
-     */
-    public void onClick(Entity selected, MouseButton mouseButton) {
+    public void onClick(MouseButton mouseButton) {
 
+    }
+
+    public void onClickWithSelected(Entity selected, Entity clicked) {
     }
 
 
