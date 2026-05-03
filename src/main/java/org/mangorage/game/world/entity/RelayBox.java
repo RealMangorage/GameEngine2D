@@ -10,7 +10,15 @@ import java.awt.*;
 
 public final class RelayBox extends EntityIO {
     public RelayBox(World world, BoundingBox box) {
-        super(Entities.RELAY_BOX_ENTITY_TYPE, world, box, 1, 1, 1.0/225.0, 0.18);
+        super(
+                Entities.RELAY_BOX_ENTITY_TYPE,
+                world,
+                box,
+                1,
+                1,
+                1.0/225.0,
+                0.18
+        );
     }
 
     @Override

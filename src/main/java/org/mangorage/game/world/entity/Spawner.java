@@ -13,7 +13,15 @@ public final class Spawner extends EntityIO {
 
     public Spawner(World world, BoundingBox box) {
         // Inputs: 0, Outputs: 1, Speed: ~5 sec, Spacing: 0.18
-        super(Entities.SPAWNER_ENTITY_TYPE, world, box, 0, 1, 1.0 / 215.0, 0.18);
+        super(
+                Entities.SPAWNER_ENTITY_TYPE,
+                world,
+                box,
+                0,
+                1,
+                1.0 / 215.0,
+                0.18
+        );
     }
 
     @Override

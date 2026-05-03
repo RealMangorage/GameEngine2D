@@ -11,7 +11,15 @@ import java.awt.*;
 public final class Trash extends EntityIO {
 
     public Trash(World world, BoundingBox box) {
-        super(Entities.TRASH_ENTITY_TYPE, world, box, Integer.MAX_VALUE, 0, 0, 0);
+        super(
+                Entities.TRASH_ENTITY_TYPE,
+                world,
+                box,
+                Integer.MAX_VALUE,
+                0,
+                0,
+                0
+        );
     }
 
     @Override

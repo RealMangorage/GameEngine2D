@@ -16,7 +16,15 @@ public final class Splitter extends EntityIO {
 
     public Splitter(World world, BoundingBox box) {
         // Inputs: 1, Outputs: 4, Speed: Fast, Spacing: 0.18
-        super(Entities.SPLITTER_ENTITY_TYPE, world, box, 1, 4, 1.0 / 23.0, 0.18);
+        super(
+                Entities.SPLITTER_ENTITY_TYPE,
+                world,
+                box,
+                1,
+                4,
+                1.0 / 23.0,
+                0.18
+        );
     }
 
     @Override
