@@ -132,6 +132,8 @@ public final class Spawner extends Entity implements IItemReceiver, INode {
 
         Point targetPoint = null;
 
+
+        ctx.pop();
         if (target instanceof Entity e) {
             targetPoint = e.getCenter();
             Point finalTargetPoint = targetPoint;
@@ -141,6 +143,8 @@ public final class Spawner extends Entity implements IItemReceiver, INode {
                 g.drawLine(center.x, center.y, finalTargetPoint.x, finalTargetPoint.y);
             });
         }
+
+        ctx.push();
 
         Point finalTargetPoint1 = targetPoint;
         for (MovingItem moving : items) {

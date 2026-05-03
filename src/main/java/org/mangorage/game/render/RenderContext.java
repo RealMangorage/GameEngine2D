@@ -20,9 +20,7 @@ public final class RenderContext {
     }
 
     public void pop() {
-        if (layer > 0) {
-            layer--;
-        }
+        layer--;
     }
 
     public void render(Graphics2D g) {

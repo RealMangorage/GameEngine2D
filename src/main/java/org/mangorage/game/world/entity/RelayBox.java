@@ -58,6 +58,7 @@ public final class RelayBox extends Entity implements IItemReceiver, INode {
         if (selected == this && clicked instanceof INode target && clicked != this) {
             if (this.canAddMoreOutputs() && target.canAcceptMoreInputs()) {
                 this.connect(target);
+                target.registerInput();
             }
         }
     }
@@ -131,6 +132,7 @@ public final class RelayBox extends Entity implements IItemReceiver, INode {
         Point center = getCenter();
         Point targetPoint = null;
 
+        ctx.pop();
         if (next instanceof Entity e) {
             targetPoint = e.getCenter();
             Point finalTargetPoint = targetPoint;
@@ -140,19 +142,24 @@ public final class RelayBox extends Entity implements IItemReceiver, INode {
                 g.drawLine(center.x, center.y, finalTargetPoint.x, finalTargetPoint.y);
             });
         }
+        ctx.push();
 
         Point finalTargetPoint1 = targetPoint;
+
+
         for (MovingItem moving : items) {
             if (finalTargetPoint1 == null) break;
 
             int cx = (int) (center.x + (finalTargetPoint1.x - center.x) * moving.progress);
             int cy = (int) (center.y + (finalTargetPoint1.y - center.y) * moving.progress);
 
+
             ctx.submit(g -> {
                 g.setColor(Color.YELLOW);
                 g.fillOval(cx - 8, cy - 8, 16, 16);
             });
         }
+
 
         ctx.submit(g -> {
             var b = getBoundingBox();
