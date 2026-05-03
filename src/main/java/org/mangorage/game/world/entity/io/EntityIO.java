@@ -4,10 +4,10 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.entity.EntityType;
-import org.mangorage.game.world.item.IItemReceiver;
+import org.mangorage.game.world.resource.item.IItemReceiver;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.misc.INode;
-import org.mangorage.game.world.item.Item;
+import org.mangorage.game.world.resource.item.Item;
 
 import java.awt.*;
 import java.util.ArrayList;
