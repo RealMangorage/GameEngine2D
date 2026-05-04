@@ -3,7 +3,6 @@ package org.mangorage.game;
 import org.mangorage.game.input.GameMouseEvent;
 import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
-import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Camera;
 import org.mangorage.game.world.misc.InputHandler;
 import org.mangorage.game.world.pos.Location;

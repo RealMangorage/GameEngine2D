@@ -6,7 +6,7 @@ import org.mangorage.game.world.entity.io.RelayBox;
 import org.mangorage.game.world.entity.io.Spawner;
 import org.mangorage.game.world.entity.io.Trash;
 import org.mangorage.game.world.misc.InputHandler;
-import org.mangorage.game.world.pos.BoundingBox;
+
 import org.mangorage.game.world.pos.Location;
 import org.mangorage.game.world.registeries.Entities;
 
@@ -39,7 +39,7 @@ public final class World {
     private final List<Entity> entities = new ArrayList<>();
     private boolean renderBoundingBoxes = false;
 
-    private double lastCheckedInput = 0;
+    
 
 
     public World() {
@@ -80,10 +80,13 @@ public final class World {
         if (renderBoundingBoxes) {
             gameRenderContext.submit(g -> {
                 g.setColor(Color.WHITE);
-                for (Entity e : entities) {
-                    var bb = e.getBoundingBox();
-                    g.drawRect(bb.x(), bb.y(), bb.width(), bb.height());
-                }
+                        for (Entity e : entities) {
+                            var bb = e.getBoundingBox();
+                            var parts = bb.getPartsAbsolute();
+                            for (var p : parts) {
+                                g.drawRect(p.x(), p.y(), p.width(), p.height());
+                            }
+                        }
 
 
             });
