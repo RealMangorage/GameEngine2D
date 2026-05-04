@@ -54,12 +54,6 @@ public final class RelayBox extends EntityIO {
             for (var p : parts) {
                 g.fillRect(p.x(), p.y(), p.width(), p.height());
             }
-
-            // optional outline to make parts clear
-            g.setColor(Color.WHITE);
-            for (var p : parts) {
-                g.drawRect(p.x(), p.y(), p.width(), p.height());
-            }
         });
     }
 }

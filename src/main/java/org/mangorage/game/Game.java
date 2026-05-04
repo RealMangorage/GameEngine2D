@@ -252,26 +252,19 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
         world.render(gameContext);
 
-        // Render a translucent "ghost" of the selected EntityType at the cursor position
+        // Prepare a ghost RenderContext if we are in placing mode. We will render it after the world
+        // commands so the ghost appears on top.
         double zoom = camera.getZoom();
         int worldMouseX = (int) (mouseX / zoom + camera.getX());
         int worldMouseY = (int) (mouseY / zoom + camera.getY());
 
+        RenderContext ghostContext = null;
+        org.mangorage.game.world.entity.Entity ghostEntity = null;
         if (placingMode == PlacingMode.PLACE && selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size()) {
             var type = Entities.ENTITY_TYPES.get(selectedType);
-            // create a temporary entity to obtain its bounding box (does not add to world)
-            var ghost = type.create(world, new Location(worldMouseX, worldMouseY));
-
-            gameContext.push(); // ensure ghost is drawn above base layer
-            gameContext.submit(g -> {
-                var old = g.getComposite();
-                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
-                var b = ghost.getBoundingBox();
-                g.setColor(new Color(100, 200, 100));
-                g.fillRect(b.x(), b.y(), b.width(), b.height());
-                g.setComposite(old);
-            });
-            gameContext.pop();
+            ghostEntity = type.create(world, new Location(worldMouseX, worldMouseY));
+            ghostContext = new RenderContext();
+            ghostEntity.render(ghostContext);
         }
 
 
@@ -285,6 +278,27 @@ public class Game extends Canvas implements Runnable, InputHandler {
         });
 
         gameContext.render(graphics);
+
+        // Render ghost on top of world (if present) with translucency.
+        if (ghostContext != null && ghostEntity != null) {
+            Graphics2D gGhost = (Graphics2D) graphics.create();
+            var oldComp = gGhost.getComposite();
+            gGhost.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+            ghostContext.render(gGhost);
+
+            // If debug bounding boxes are active, draw the ghost's parts outlines (less translucent)
+            if (world.isRenderBoundingBoxes()) {
+                gGhost.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.85f));
+                gGhost.setColor(Color.WHITE);
+                var parts = ghostEntity.getBoundingBox().getPartsAbsolute();
+                for (var p : parts) {
+                    gGhost.drawRect(p.x(), p.y(), p.width(), p.height());
+                }
+            }
+
+            gGhost.setComposite(oldComp);
+            gGhost.dispose();
+        }
 
         // FINALIZE
         graphics.dispose();

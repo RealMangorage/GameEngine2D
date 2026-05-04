@@ -2,13 +2,7 @@ package org.mangorage.game.world;
 
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.entity.Entity;
-import org.mangorage.game.world.entity.io.RelayBox;
-import org.mangorage.game.world.entity.io.Spawner;
-import org.mangorage.game.world.entity.io.Trash;
 import org.mangorage.game.world.misc.InputHandler;
-
-import org.mangorage.game.world.pos.Location;
-import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -16,34 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class World {
-
-    public static void setupBasicLogisticsChain(World world) {
-        Spawner spawner = Entities.SPAWNER_ENTITY_TYPE.create(world, new Location(20, 50));
-        Spawner spawner2 = Entities.SPAWNER_ENTITY_TYPE.create(world, new Location(20, 170));
-
-        RelayBox relayBox1 = Entities.RELAY_BOX_ENTITY_TYPE.create(world, new Location(150, 100));
-        RelayBox relayBox2 = Entities.RELAY_BOX_ENTITY_TYPE.create(world, new Location(250, 100));
-        Trash trash = Entities.TRASH_ENTITY_TYPE.create(world, new Location(350, 250));
-
-        world.addEntity(spawner);
-
-        world.addEntity(relayBox1);
-        world.addEntity(relayBox2);
-        world.addEntity(trash);
-
-        world.addEntity(spawner2);
-
-        System.out.println("Logistics chain initialized: Spawner -> Wire1 -> Wire2 -> Trash");
-    }
-
     private final List<Entity> entities = new ArrayList<>();
     private boolean renderBoundingBoxes = false;
 
-    
-
-
     public World() {
-        setupBasicLogisticsChain(this);
     }
 
     public void addEntity(Entity e) {
@@ -59,6 +29,11 @@ public final class World {
             renderBoundingBoxes = !renderBoundingBoxes;
         }
 
+    }
+
+    // Expose whether debug bounding boxes are enabled
+    public boolean isRenderBoundingBoxes() {
+        return renderBoundingBoxes;
     }
 
     public void update(double delta) {
@@ -80,15 +55,13 @@ public final class World {
         if (renderBoundingBoxes) {
             gameRenderContext.submit(g -> {
                 g.setColor(Color.WHITE);
-                        for (Entity e : entities) {
-                            var bb = e.getBoundingBox();
-                            var parts = bb.getPartsAbsolute();
-                            for (var p : parts) {
-                                g.drawRect(p.x(), p.y(), p.width(), p.height());
-                            }
-                        }
-
-
+                for (Entity e : entities) {
+                    var bb = e.getBoundingBox();
+                    var parts = bb.getPartsAbsolute();
+                    for (var p : parts) {
+                        g.drawRect(p.x(), p.y(), p.width(), p.height());
+                    }
+                }
             });
         }
     }
