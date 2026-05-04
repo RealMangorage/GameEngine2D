@@ -37,6 +37,9 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
     private final boolean[] keys = new boolean[256];
     private final Queue<GameMouseEvent> mouseEvents = new ConcurrentLinkedDeque<>();
+    // current mouse position in screen (canvas) coordinates
+    private int mouseX = 0;
+    private int mouseY = 0;
 
     private double lastCheckedInputs = 0;
 
@@ -75,6 +78,21 @@ public class Game extends Canvas implements Runnable, InputHandler {
             @Override
             public void mousePressed(MouseEvent e) {
                 mouseEvents.add(new GameMouseEvent(e.getX(), e.getY(), e.getButton()));
+            }
+        });
+
+        // Track mouse position for the ghost preview
+        addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
             }
         });
 
@@ -234,6 +252,28 @@ public class Game extends Canvas implements Runnable, InputHandler {
         graphics.translate(-camera.getX(), -camera.getY());
 
         world.render(gameContext);
+
+        // Render a translucent "ghost" of the selected EntityType at the cursor position
+        double zoom = camera.getZoom();
+        int worldMouseX = (int) (mouseX / zoom + camera.getX());
+        int worldMouseY = (int) (mouseY / zoom + camera.getY());
+
+        if (placingMode == PlacingMode.PLACE && selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size()) {
+            var type = Entities.ENTITY_TYPES.get(selectedType);
+            // create a temporary entity to obtain its bounding box (does not add to world)
+            var ghost = type.create(world, new Location(worldMouseX, worldMouseY));
+
+            gameContext.push(); // ensure ghost is drawn above base layer
+            gameContext.submit(g -> {
+                var old = g.getComposite();
+                g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+                var b = ghost.getBoundingBox();
+                g.setColor(new Color(100, 200, 100));
+                g.fillRect(b.x(), b.y(), b.width(), b.height());
+                g.setComposite(old);
+            });
+            gameContext.pop();
+        }
 
 
         // 3. RENDER SCREEN UI (Top Layer)

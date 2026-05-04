@@ -12,7 +12,8 @@ public final class EntityType<T extends Entity> {
 
     private final String name;
     private final IEntitySupplier<T> supplier;
-    private int width, height;
+    private final int width;
+    private final int height;
 
     EntityType(String name, IEntitySupplier<T> supplier, int width, int height) {
         this.name = name;
