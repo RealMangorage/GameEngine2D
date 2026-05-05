@@ -75,4 +75,9 @@ public final class World {
         }
         return null;
     }
+
+    // Convenience wrapper (semantic): get the entity at this world coordinate
+    public Entity getEntityAt(int x, int y) {
+        return handleClick(x, y);
+    }
 }

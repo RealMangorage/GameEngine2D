@@ -272,7 +272,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
         // This uses the original 'graphics' object which is still in screen space
         screenContext.submit(g -> {
             g.setColor(Color.BLUE);
-            g.drawString("Selected: " +  (this.selected == null ? "NONE" : (selected.getType().getName() + " " + selected.getBoundingBox().format())), 10, 20);
+            g.drawString("Selected: " +  (this.selected == null ? "NONE" : ((selected.getType() == null ? selected.getClass().getSimpleName() : selected.getType().getName()) + " " + selected.getBoundingBox().format())), 10, 20);
             g.drawString("Selected Type: " + (selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size() ? Entities.ENTITY_TYPES.get(selectedType).getName() : "None"), 10, 40);
             g.drawString("Placing Mode: " + (placingMode) + " (Toggle with F4)", 10, 60);
         });
