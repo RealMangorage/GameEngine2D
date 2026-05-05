@@ -14,7 +14,12 @@ public abstract class Layer {
         renderContext.render(graphics);
     }
 
+    public void handleKeyEvent() {
+
+    }
+
     abstract public void update(double delta);
     abstract public void render(RenderContext context);
-    abstract public void handleInput(double delta, Queue<GameMouseEvent> mouseEvents);
+    abstract public boolean handleInput(double delta, Queue<GameMouseEvent> mouseEvents, int mouseX, int mouseY);
+
 }

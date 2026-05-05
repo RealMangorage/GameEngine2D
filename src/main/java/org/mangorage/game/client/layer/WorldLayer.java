@@ -28,7 +28,6 @@ public final class WorldLayer extends Layer {
     private static final float GHOST_OPACITY = 0.35f;
     private static final float BOUNDING_BOX_OPACITY = 0.85f;
 
-    private final Game game = Game.getInstance();
     private final World world = new World();
     private final Camera camera = new Camera();
 
@@ -43,6 +42,7 @@ public final class WorldLayer extends Layer {
     private boolean placementSnapY = true;
 
     private double lastCheckedInputs = 0;
+    private int mouseX, mouseY = 0;
 
     public WorldLayer() {}
 
@@ -60,7 +60,10 @@ public final class WorldLayer extends Layer {
     }
 
     @Override
-    public void handleInput(double delta, Queue<GameMouseEvent> mouseEvents) {
+    public boolean handleInput(double delta, Queue<GameMouseEvent> mouseEvents, int mouseX, int mouseY) {
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
+
         handleCameraMovement();
 
         lastCheckedInputs += delta;
@@ -70,21 +73,22 @@ public final class WorldLayer extends Layer {
         }
 
         processMouse(mouseEvents);
+        return false;
     }
 
     private void handleCameraMovement() {
-        if (game.isKeyDown(KeyEvent.VK_W)) camera.move(0, -CAMERA_SPEED);
-        if (game.isKeyDown(KeyEvent.VK_S)) camera.move(0, CAMERA_SPEED);
-        if (game.isKeyDown(KeyEvent.VK_A)) camera.move(-CAMERA_SPEED, 0);
-        if (game.isKeyDown(KeyEvent.VK_D)) camera.move(CAMERA_SPEED, 0);
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_W)) camera.move(0, -CAMERA_SPEED);
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_S)) camera.move(0, CAMERA_SPEED);
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_A)) camera.move(-CAMERA_SPEED, 0);
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_D)) camera.move(CAMERA_SPEED, 0);
     }
 
     private void handleToggles() {
-        if (game.isKeyDown(KeyEvent.VK_Q)) {
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_Q)) {
             selected = null;
         }
 
-        if (game.isKeyDown(KeyEvent.VK_F4)) {
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_F4)) {
             placingMode = switch (placingMode) {
                 case OFF -> PlacingMode.PLACE;
                 case PLACE -> PlacingMode.DELETE;
@@ -92,7 +96,7 @@ public final class WorldLayer extends Layer {
             };
         }
 
-        if (game.isKeyDown(KeyEvent.VK_R)) {
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_R)) {
             if (selected != null) {
                 selected.rotate();
             } else {
@@ -100,10 +104,10 @@ public final class WorldLayer extends Layer {
             }
         }
 
-        if (game.isKeyDown(KeyEvent.VK_G)) placementSnap = !placementSnap;
-        if (game.isKeyDown(KeyEvent.VK_O)) placementAutoOrient = !placementAutoOrient;
-        if (game.isKeyDown(KeyEvent.VK_X)) placementSnapX = !placementSnapX;
-        if (game.isKeyDown(KeyEvent.VK_Y)) placementSnapY = !placementSnapY;
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_G)) placementSnap = !placementSnap;
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_O)) placementAutoOrient = !placementAutoOrient;
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_X)) placementSnapX = !placementSnapX;
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_Y)) placementSnapY = !placementSnapY;
     }
 
     private void processMouse(Queue<GameMouseEvent> mouseEvents) {
@@ -130,7 +134,7 @@ public final class WorldLayer extends Layer {
             return;
         }
 
-        if (game.isKeyDown(KeyEvent.VK_SHIFT)) {
+        if (Game.getInstance().isKeyDown(KeyEvent.VK_SHIFT)) {
             selected = entity;
         }
 
@@ -160,7 +164,7 @@ public final class WorldLayer extends Layer {
             g.scale(camera.getZoom(), camera.getZoom());
             g.translate(-camera.getX(), -camera.getY());
 
-            Position mouseWorld = screenToWorld(game.getMouseX(), game.getMouseY());
+            Position mouseWorld = screenToWorld(mouseX, mouseY);
 
             if (placingMode == PlacingMode.PLACE && selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size()) {
                 renderPlacementGhost(g, mouseWorld);

@@ -14,6 +14,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,10 +22,15 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class Game extends Canvas implements Runnable, InputHandler {
-    private static final Game INSTANCE = new Game();
+    private static  Game INSTANCE;
 
-    public static Game getInstance() {
-        return INSTANCE;
+    public synchronized static Game getInstance() {
+        synchronized (Game.class) {
+            if (INSTANCE == null) {
+                INSTANCE = new Game();
+            }
+            return INSTANCE;
+        }
     }
 
     private boolean running = false;
@@ -40,8 +46,6 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
     private final List<Layer> layers = new ArrayList<>();
 
-    private final WorldLayer worldLayer = new WorldLayer();
-    private final UILayer uiLayer = new UILayer(worldLayer);
 
     private Game() {
         JFrame frame = new JFrame("Simple Game Framework");
@@ -49,8 +53,11 @@ public class Game extends Canvas implements Runnable, InputHandler {
         setPreferredSize(new Dimension(width, height));
         setFocusable(true);
 
-        layers.add(worldLayer);
+        final WorldLayer worldLayer = new WorldLayer();
+        final UILayer uiLayer = new UILayer(worldLayer);
+
         layers.add(uiLayer);
+        layers.add(worldLayer);
 
         // Input Listeners
         addKeyListener(new KeyAdapter() {
@@ -65,6 +72,13 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 if (e.getKeyCode() < keys.length)
                     keys[e.getKeyCode()] = false;
             }
+
+            @Override
+            public void keyTyped(KeyEvent e) {
+                for (Layer layer : layers) {
+                    layer.handleKeyEvent();
+                }
+            }
         });
 
         addMouseListener(new MouseAdapter() {
@@ -72,9 +86,16 @@ public class Game extends Canvas implements Runnable, InputHandler {
             public void mousePressed(MouseEvent e) {
                 mouseEvents.add(new GameMouseEvent(e.getX(), e.getY(), e.getButton()));
             }
-        });
 
-        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                if (isKeyDown(KeyEvent.VK_SHIFT)) {
+                    worldLayer.zoomCamera(-e.getPreciseWheelRotation() * 0.1);
+                } else {
+                    worldLayer.scrollSelectedType((int) e.getPreciseWheelRotation());
+                }
+            }
+
             @Override
             public void mouseMoved(MouseEvent e) {
                 mouseX = e.getX();
@@ -85,14 +106,6 @@ public class Game extends Canvas implements Runnable, InputHandler {
             public void mouseDragged(MouseEvent e) {
                 mouseX = e.getX();
                 mouseY = e.getY();
-            }
-        });
-
-        addMouseWheelListener(e -> {
-            if (isKeyDown(KeyEvent.VK_SHIFT)) {
-                worldLayer.zoomCamera(-e.getPreciseWheelRotation() * 0.1);
-            } else {
-                worldLayer.scrollSelectedType((int) e.getPreciseWheelRotation());
             }
         });
 
@@ -147,8 +160,14 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 Queue<GameMouseEvent> eventsSnapshot = new ConcurrentLinkedDeque<>(mouseEvents);
                 mouseEvents.clear(); // Clear so they aren't processed forever
 
+                var inputHandled = false;
+
                 for (Layer layer : layers) {
-                    layer.handleInput(delta, eventsSnapshot);
+                    // If input has been handled, it means something has already processed it, and that must mean no more layers are needing to handle input.
+                    if (!inputHandled) {
+                        inputHandled = layer.handleInput(delta, eventsSnapshot, mouseX, mouseY);
+                    }
+
                     layer.update(delta);
                 }
                 delta--;
@@ -183,13 +202,5 @@ public class Game extends Canvas implements Runnable, InputHandler {
     @Override
     public boolean isKeyDown(int keyEvent) {
         return keyEvent >= 0 && keyEvent < keys.length && keys[keyEvent];
-    }
-
-    public int getMouseX() {
-        return mouseX;
-    }
-
-    public int getMouseY() {
-        return mouseY;
     }
 }
