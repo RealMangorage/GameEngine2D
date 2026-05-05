@@ -256,8 +256,6 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
             ghostEntity = Entities.ENTITY_TYPES.get(selectedType).create(world, mouseWorld);
 
-
-
             int offsetX = ghostEntity.getBoundingBox().width() / 2;
             int offsetY = ghostEntity.getBoundingBox().height() / 2;
 
