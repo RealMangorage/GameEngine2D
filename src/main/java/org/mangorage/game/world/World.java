@@ -92,4 +92,11 @@ public final class World {
     public Entity getEntityAt(int x, int y) {
         return handleClick(x, y);
     }
+
+    /**
+     * Return an unmodifiable view of current entities for inspection by callers.
+     */
+    public java.util.List<Entity> getEntities() {
+        return java.util.List.copyOf(entities);
+    }
 }

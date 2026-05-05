@@ -48,6 +48,10 @@ public class Game extends Canvas implements Runnable, InputHandler {
     private int selectedType = 0;
     private PlacingMode placingMode = PlacingMode.OFF;
     private Facing currentRotation = Facing.EAST;
+    private boolean placementSnap = true;
+    private boolean placementAutoOrient = false;
+    private boolean placementSnapX = true;
+    private boolean placementSnapY = true;
 
     public Game() {
         JFrame frame = new JFrame("Simple Game Framework");
@@ -199,6 +203,20 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 }
             }
 
+            if (isKeyDown(KeyEvent.VK_G)) {
+                placementSnap = !placementSnap;
+            }
+
+            if (isKeyDown(KeyEvent.VK_O)) {
+                placementAutoOrient = !placementAutoOrient;
+            }
+            if (isKeyDown(KeyEvent.VK_X)) {
+                placementSnapX = !placementSnapX;
+            }
+            if (isKeyDown(KeyEvent.VK_Y)) {
+                placementSnapY = !placementSnapY;
+            }
+
             lastCheckedInputs = 0;
         }
 
@@ -240,6 +258,8 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 int h = (newEntity.getFacing() == Facing.EAST || newEntity.getFacing() == Facing.WEST) ? bb.height() : bb.width();
 
                 Position centered = new Position(worldPos.x() - w / 2, worldPos.y() - h / 2, 0);
+                // apply snapping similarly to the ghost so placement matches the preview
+                centered = snapPlacement(newEntity, centered, placementSnap);
                 newEntity.setPosition(centered);
 
                 world.addEntity(newEntity);
@@ -288,6 +308,9 @@ public class Game extends Canvas implements Runnable, InputHandler {
                     0
             );
 
+            // apply snapping to nearby entities or to grid depending on toggle
+            centered = snapPlacement(ghostEntity, centered, placementSnap);
+
             ghostEntity.setPosition(centered);
 
             ghostContext = new RenderContext();
@@ -307,6 +330,10 @@ public class Game extends Canvas implements Runnable, InputHandler {
             );
             g.drawString("Placing Mode: " + placingMode + " (F4)", 10, 60);
             g.drawString("Rotation: " + (selected != null ? selected.getFacing() : currentRotation), 10, 80);
+            g.drawString("Snap: " + (placementSnap ? "ON (G)" : "OFF (G)"), 10, 100);
+            g.drawString("SnapX: " + (placementSnapX ? "ON (X)" : "OFF (X)"), 10, 120);
+            g.drawString("SnapY: " + (placementSnapY ? "ON (Y)" : "OFF (Y)"), 10, 140);
+            g.drawString("Auto-Orient: " + (placementAutoOrient ? "ON (O)" : "OFF (O)"), 10, 160);
         });
 
         gameContext.render(graphics);
@@ -343,6 +370,155 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
         graphics.dispose();
         bs.show();
+    }
+
+    /**
+     * Snap the placement of an entity to nearby entities or a grid.
+     * If snap==false, returns the provided centered position unchanged.
+     */
+    private Position snapPlacement(Entity ghost, Position centered, boolean snap) {
+        if (!snap) return centered;
+
+        int snapThreshold = 16; // pixels within which to snap to other entity edges
+
+        // ghost bounding box and world rect
+        var gb = ghost.getBoundingBox();
+        int gw = (ghost.getFacing() == Facing.EAST || ghost.getFacing() == Facing.WEST) ? gb.width() : gb.height();
+        int gh = (ghost.getFacing() == Facing.EAST || ghost.getFacing() == Facing.WEST) ? gb.height() : gb.width();
+
+        int gx = centered.x();
+        int gy = centered.y();
+
+        // track best snap (smallest distance)
+        double bestDist = Double.POSITIVE_INFINITY;
+        Rectangle bestRect = null;
+        Entity bestOther = null;
+        String bestSide = null; // "LEFT"/"RIGHT"/"TOP"/"BOTTOM"
+
+        for (Entity other : world.getEntities()) {
+            if (other == ghost) continue;
+            Position op = other.getPosition();
+            var ob = other.getBoundingBox();
+            java.util.List<org.mangorage.game.world.pos.BoundingBox.Part> parts = ob.parts(other.getFacing());
+
+            if (parts.isEmpty()) {
+                int ow = (other.getFacing() == Facing.EAST || other.getFacing() == Facing.WEST) ? ob.width() : ob.height();
+                int oh = (other.getFacing() == Facing.EAST || other.getFacing() == Facing.WEST) ? ob.height() : ob.width();
+
+                Rectangle r = new Rectangle(op.x(), op.y(), ow, oh);
+                // candidate snaps: left/right/top/bottom
+                // left/right candidates only if snapping on X axis is enabled
+                if (placementSnapX) {
+                    // left: align ghost right edge to other left
+                    int candX = r.x - gw;
+                    int candY = gy;
+                    double dist = Math.hypot(candX - gx, candY - gy);
+                    if (Math.abs(candX - gx) <= snapThreshold && dist < bestDist) {
+                        bestDist = dist; bestRect = r; bestOther = other; bestSide = "LEFT";
+                    }
+
+                    // right: align ghost left edge to other right
+                    candX = r.x + r.width;
+                    candY = gy;
+                    dist = Math.hypot(candX - gx, candY - gy);
+                    if (Math.abs(candX - gx) <= snapThreshold && dist < bestDist) {
+                        bestDist = dist; bestRect = r; bestOther = other; bestSide = "RIGHT";
+                    }
+                }
+
+                // top/bottom candidates only if snapping on Y axis is enabled
+                if (placementSnapY) {
+                    // top: align ghost bottom to other top
+                    int candX = gx;
+                    int candY = r.y - gh;
+                    double dist = Math.hypot(candX - gx, candY - gy);
+                    if (Math.abs(candY - gy) <= snapThreshold && dist < bestDist) {
+                        bestDist = dist; bestRect = r; bestOther = other; bestSide = "TOP";
+                    }
+
+                    // bottom: align ghost top to other bottom
+                    candX = gx;
+                    candY = r.y + r.height;
+                    dist = Math.hypot(candX - gx, candY - gy);
+                    if (Math.abs(candY - gy) <= snapThreshold && dist < bestDist) {
+                        bestDist = dist; bestRect = r; bestOther = other; bestSide = "BOTTOM";
+                    }
+                }
+            } else {
+                for (var p : parts) {
+                    int ox = op.x() + p.offsetX();
+                    int oy = op.y() + p.offsetY();
+                    int ow = p.width();
+                    int oh = p.height();
+                    Rectangle r = new Rectangle(ox, oy, ow, oh);
+
+                    if (placementSnapX) {
+                        int candX = r.x - gw; int candY = gy;
+                        double dist = Math.hypot(candX - gx, candY - gy);
+                        if (Math.abs(candX - gx) <= snapThreshold && dist < bestDist) { bestDist = dist; bestRect = r; bestOther = other; bestSide = "LEFT"; }
+
+                        candX = r.x + r.width; candY = gy;
+                        dist = Math.hypot(candX - gx, candY - gy);
+                        if (Math.abs(candX - gx) <= snapThreshold && dist < bestDist) { bestDist = dist; bestRect = r; bestOther = other; bestSide = "RIGHT"; }
+                    }
+
+                    if (placementSnapY) {
+                        int candX = gx; int candY = r.y - gh;
+                        double dist = Math.hypot(candX - gx, candY - gy);
+                        if (Math.abs(candY - gy) <= snapThreshold && dist < bestDist) { bestDist = dist; bestRect = r; bestOther = other; bestSide = "TOP"; }
+
+                        candX = gx; candY = r.y + r.height;
+                        dist = Math.hypot(candX - gx, candY - gy);
+                        if (Math.abs(candY - gy) <= snapThreshold && dist < bestDist) { bestDist = dist; bestRect = r; bestOther = other; bestSide = "BOTTOM"; }
+                    }
+                }
+            }
+        }
+
+        if (bestDist < Double.POSITIVE_INFINITY && bestRect != null && bestOther != null && bestSide != null) {
+            // If same entity type, align facing to the existing entity and snap exactly on the same X or Y
+            boolean sameType = ghost.getType() == bestOther.getType();
+            Facing finalFacing = ghost.getFacing();
+            // only auto-orient to the other entity's facing if the user enabled auto-orient (O)
+            if (sameType && placementAutoOrient) {
+                finalFacing = bestOther.getFacing();
+                // do not forcibly set ghost facing unless auto-orient is enabled
+                ghost.setFacing(finalFacing);
+            }
+
+            int finalGw = (finalFacing == Facing.EAST || finalFacing == Facing.WEST) ? gb.width() : gb.height();
+            int finalGh = (finalFacing == Facing.EAST || finalFacing == Facing.WEST) ? gb.height() : gb.width();
+
+            int fx = gx;
+            int fy = gy;
+
+            switch (bestSide) {
+                case "LEFT" -> {
+                    if (placementSnapX) fx = bestRect.x - finalGw;
+                    if (sameType && placementSnapY) fy = bestRect.y;
+                }
+                case "RIGHT" -> {
+                    if (placementSnapX) fx = bestRect.x + bestRect.width;
+                    if (sameType && placementSnapY) fy = bestRect.y;
+                }
+                case "TOP" -> {
+                    if (placementSnapY) fy = bestRect.y - finalGh;
+                    if (sameType && placementSnapX) fx = bestRect.x;
+                }
+                case "BOTTOM" -> {
+                    if (placementSnapY) fy = bestRect.y + bestRect.height;
+                    if (sameType && placementSnapX) fx = bestRect.x;
+                }
+            }
+
+            return new Position(fx, fy, centered.z());
+        }
+
+        // fallback: snap to grid (16 px)
+        int grid = 16;
+        int sx = Math.round((float) gx / grid) * grid;
+        int sy = Math.round((float) gy / grid) * grid;
+        return new Position(sx, sy, centered.z());
     }
 
     @Override
