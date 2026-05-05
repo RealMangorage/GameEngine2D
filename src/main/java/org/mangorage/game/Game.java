@@ -1,5 +1,8 @@
 package org.mangorage.game;
 
+import org.mangorage.game.client.layer.LayerId;
+import org.mangorage.game.client.layer.LayerSystem;
+import org.mangorage.game.client.layer.Layers;
 import org.mangorage.game.input.GameMouseEvent;
 import org.mangorage.game.client.layer.Layer;
 import org.mangorage.game.client.layer.UILayer;
@@ -44,8 +47,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
     private int mouseX, mouseY = 0;
 
-    private final List<Layer> layers = new ArrayList<>();
-
+    private final LayerSystem layerSystem = new LayerSystem();
 
     private Game() {
         JFrame frame = new JFrame("Simple Game Framework");
@@ -56,8 +58,14 @@ public class Game extends Canvas implements Runnable, InputHandler {
         final WorldLayer worldLayer = new WorldLayer();
         final UILayer uiLayer = new UILayer(worldLayer);
 
-        layers.add(uiLayer);
-        layers.add(worldLayer);
+
+
+        layerSystem.add(Layers.UI, uiLayer);
+        layerSystem.add(Layers.WORLD, worldLayer);
+
+        for (Layer layer : layerSystem.asList()) {
+            System.out.println(layer);
+        }
 
         // Input Listeners
         addKeyListener(new KeyAdapter() {
@@ -75,7 +83,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
             @Override
             public void keyTyped(KeyEvent e) {
-                for (Layer layer : layers) {
+                for (Layer layer : layerSystem.asList()) {
                     layer.handleKeyEvent();
                 }
             }
@@ -95,15 +103,11 @@ public class Game extends Canvas implements Runnable, InputHandler {
                     worldLayer.scrollSelectedType((int) e.getPreciseWheelRotation());
                 }
             }
+        });
 
+        addMouseMotionListener(new MouseMotionAdapter() {;
             @Override
             public void mouseMoved(MouseEvent e) {
-                mouseX = e.getX();
-                mouseY = e.getY();
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e) {
                 mouseX = e.getX();
                 mouseY = e.getY();
             }
@@ -135,11 +139,11 @@ public class Game extends Canvas implements Runnable, InputHandler {
     }
 
     public List<Layer> getLayers() {
-        return List.copyOf(layers);
+        return List.copyOf(layerSystem.asList());
     }
 
-    public void addLayer(Layer layer) {
-        layers.add(layer);
+    public void addLayer(LayerId layerId, Layer layer) {
+        layerSystem.add(layerId, layer);
     }
 
     @Override
@@ -162,7 +166,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
                 var inputHandled = false;
 
-                for (Layer layer : layers) {
+                for (Layer layer : layerSystem.asList()) {
                     // If input has been handled, it means something has already processed it, and that must mean no more layers are needing to handle input.
                     if (!inputHandled) {
                         inputHandled = layer.handleInput(delta, eventsSnapshot, mouseX, mouseY);
@@ -191,7 +195,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, width, height);
 
-        for (Layer layer : layers) {
+        for (Layer layer : layerSystem.asList()) {
             layer.render(graphics);
         }
 
