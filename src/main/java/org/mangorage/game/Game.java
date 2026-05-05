@@ -43,7 +43,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
     private final WorldLayer worldLayer = new WorldLayer();
     private final UILayer uiLayer = new UILayer(worldLayer);
 
-    public Game() {
+    private Game() {
         JFrame frame = new JFrame("Simple Game Framework");
 
         setPreferredSize(new Dimension(width, height));
