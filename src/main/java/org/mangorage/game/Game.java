@@ -5,11 +5,11 @@ import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.pos.Camera;
 import org.mangorage.game.world.misc.InputHandler;
-import org.mangorage.game.world.pos.Location;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.misc.PlacingMode;
 import org.mangorage.game.world.registeries.Entities;
+import org.mangorage.game.world.pos.Position;
 
 import javax.swing.*;
 import java.awt.*;
@@ -36,7 +36,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
     private final boolean[] keys = new boolean[256];
     private final Queue<GameMouseEvent> mouseEvents = new ConcurrentLinkedDeque<>();
-    // current mouse position in screen (canvas) coordinates
+
     private int mouseX = 0;
     private int mouseY = 0;
 
@@ -47,14 +47,12 @@ public class Game extends Canvas implements Runnable, InputHandler {
     private int selectedType = 0;
     private PlacingMode placingMode = PlacingMode.OFF;
 
-
     public Game() {
         JFrame frame = new JFrame("Simple Game Framework");
 
         setPreferredSize(new Dimension(width, height));
         setFocusable(true);
 
-        // Keyboard Input
         addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -80,7 +78,6 @@ public class Game extends Canvas implements Runnable, InputHandler {
             }
         });
 
-        // Track mouse position for the ghost preview
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -97,10 +94,14 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
         addMouseWheelListener(e -> {
             if (isKeyDown(KeyEvent.VK_SHIFT)) {
-                double zoomChange = -e.getPreciseWheelRotation() * 0.1;
-                camera.zoom(zoomChange);
+                camera.zoom(-e.getPreciseWheelRotation() * 0.1);
             } else {
-                selectedType = Math.max(0, Math.min(Entities.ENTITY_TYPES.size() - 1, selectedType + (int) e.getPreciseWheelRotation()));
+                selectedType = Math.max(
+                        0,
+                        Math.min(Entities.ENTITY_TYPES.size() - 1,
+                                selectedType + (int) e.getPreciseWheelRotation()
+                        )
+                );
             }
         });
 
@@ -156,52 +157,49 @@ public class Game extends Canvas implements Runnable, InputHandler {
         stop();
     }
 
+    // ----------------------------
+    // CLEAN WORLD MOUSE CONVERSION
+    // ----------------------------
+    private Position screenToWorld(int sx, int sy) {
+        double zoom = camera.getZoom();
+        int x = (int) (sx / zoom + camera.getX());
+        int y = (int) (sy / zoom + camera.getY());
+        return new Position(x, y, 0);
+    }
+
     private void handleInput(double delta) {
         int speed = 6;
 
-        if (isKeyDown(KeyEvent.VK_W))
-            camera.move(0, -speed);
-
-        if (isKeyDown(KeyEvent.VK_S))
-            camera.move(0, speed);
-
-        if (isKeyDown(KeyEvent.VK_A))
-            camera.move(-speed, 0);
-
-        if (isKeyDown(KeyEvent.VK_D))
-            camera.move(speed, 0);
+        if (isKeyDown(KeyEvent.VK_W)) camera.move(0, -speed);
+        if (isKeyDown(KeyEvent.VK_S)) camera.move(0, speed);
+        if (isKeyDown(KeyEvent.VK_A)) camera.move(-speed, 0);
+        if (isKeyDown(KeyEvent.VK_D)) camera.move(speed, 0);
 
         lastCheckedInputs += delta;
 
         if (lastCheckedInputs >= 4) {
-            if (isKeyDown(KeyEvent.VK_Q)) {
-                selected = null;
-            }
+            if (isKeyDown(KeyEvent.VK_Q)) selected = null;
 
             if (isKeyDown(KeyEvent.VK_F4)) {
-
-
                 placingMode = switch (placingMode) {
                     case OFF -> PlacingMode.PLACE;
                     case PLACE -> PlacingMode.DELETE;
                     case DELETE -> PlacingMode.OFF;
                 };
-
             }
+
             lastCheckedInputs = 0;
         }
-
-        double zoom = camera.getZoom();
 
         while (!mouseEvents.isEmpty()) {
             GameMouseEvent e = mouseEvents.poll();
 
-            // ✅ correct inverse transform
-            int worldX = (int)(e.x() / zoom + camera.getX());
-            int worldY = (int)(e.y() / zoom + camera.getY());
+            Position worldPos = screenToWorld(e.x(), e.y());
 
-            var entity = world.handleClick(worldX, worldY);
-            var button = e.button() >= MouseButton.values().length ? MouseButton.UNKNOWN : MouseButton.values()[e.button()];
+            var entity = world.handleClick(worldPos.x(), worldPos.y());
+            var button = e.button() >= MouseButton.values().length
+                    ? MouseButton.UNKNOWN
+                    : MouseButton.values()[e.button()];
 
             if (entity != null) {
 
@@ -210,7 +208,6 @@ public class Game extends Canvas implements Runnable, InputHandler {
                     continue;
                 }
 
-
                 if (isKeyDown(KeyEvent.VK_SHIFT)) {
                     selected = entity;
                 }
@@ -218,17 +215,15 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 entity.onClick(button);
 
                 if (selected != null) {
-
-
                     selected.onClickWithSelected(selected, entity);
                 }
 
-            } else if (button == MouseButton.LEFT) {
-                if (placingMode == PlacingMode.PLACE) {
-                    world.addEntity(
-                            Entities.ENTITY_TYPES.get(selectedType).create(world, new Location(worldX, worldY))
-                    );
-                }
+            } else if (button == MouseButton.LEFT && placingMode == PlacingMode.PLACE) {
+
+                world.addEntity(
+                        Entities.ENTITY_TYPES.get(selectedType)
+                                .create(world, worldPos)
+                );
             }
         }
     }
@@ -252,58 +247,82 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
         world.render(gameContext);
 
-        // Prepare a ghost RenderContext if we are in placing mode. We will render it after the world
-        // commands so the ghost appears on top.
-        double zoom = camera.getZoom();
-        int worldMouseX = (int) (mouseX / zoom + camera.getX());
-        int worldMouseY = (int) (mouseY / zoom + camera.getY());
+        Position mouseWorld = screenToWorld(mouseX, mouseY);
 
+        Entity ghostEntity = null;
         RenderContext ghostContext = null;
-        org.mangorage.game.world.entity.Entity ghostEntity = null;
+
         if (placingMode == PlacingMode.PLACE && selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size()) {
-            var type = Entities.ENTITY_TYPES.get(selectedType);
-            ghostEntity = type.create(world, new Location(worldMouseX, worldMouseY));
+
+            ghostEntity = Entities.ENTITY_TYPES.get(selectedType).create(world, mouseWorld);
+
+
+
+            int offsetX = ghostEntity.getBoundingBox().width() / 2;
+            int offsetY = ghostEntity.getBoundingBox().height() / 2;
+
+            Position centered = new Position(
+                    mouseWorld.x() - offsetX,
+                    mouseWorld.y() - offsetY,
+                    0
+            );
+
+            ghostEntity.setPosition(centered);
+
             ghostContext = new RenderContext();
             ghostEntity.render(ghostContext);
         }
 
-
-        // 3. RENDER SCREEN UI (Top Layer)
-        // This uses the original 'graphics' object which is still in screen space
         screenContext.submit(g -> {
             g.setColor(Color.BLUE);
-            g.drawString("Selected: " +  (this.selected == null ? "NONE" : ((selected.getType() == null ? selected.getClass().getSimpleName() : selected.getType().getName()) + " " + selected.getBoundingBox().format())), 10, 20);
-            g.drawString("Selected Type: " + (selectedType >= 0 && selectedType < Entities.ENTITY_TYPES.size() ? Entities.ENTITY_TYPES.get(selectedType).getName() : "None"), 10, 40);
-            g.drawString("Placing Mode: " + (placingMode) + " (Toggle with F4)", 10, 60);
+            g.drawString(
+                    "Selected: " + (selected == null ? "NONE"
+                            : selected.getType().getName()),
+                    10, 20
+            );
+            g.drawString("Selected Type: " +
+                            Entities.ENTITY_TYPES.get(selectedType).getName(),
+                    10, 40
+            );
+            g.drawString("Placing Mode: " + placingMode + " (F4)", 10, 60);
         });
 
         gameContext.render(graphics);
 
-        // Render ghost on top of world (if present) with translucency.
         if (ghostContext != null && ghostEntity != null) {
             Graphics2D gGhost = (Graphics2D) graphics.create();
-            var oldComp = gGhost.getComposite();
-            gGhost.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
+
+            gGhost.setComposite(
+                    AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f)
+            );
+
             ghostContext.render(gGhost);
 
-            // If debug bounding boxes are active, draw the ghost's parts outlines (less translucent)
             if (world.isRenderBoundingBoxes()) {
-                gGhost.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.85f));
+                gGhost.setComposite(
+                        AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.85f)
+                );
                 gGhost.setColor(Color.WHITE);
-                var parts = ghostEntity.getBoundingBox().getPartsAbsolute();
-                for (var p : parts) {
-                    gGhost.drawRect(p.x(), p.y(), p.width(), p.height());
+
+                var pos = ghostEntity.getPosition();
+
+                for (var p : ghostEntity.getBoundingBox().parts()) {
+                    gGhost.drawRect(
+                            pos.x() + p.offsetX(),
+                            pos.y() + p.offsetY(),
+                            p.width(),
+                            p.height()
+                    );
                 }
             }
 
-            gGhost.setComposite(oldComp);
             gGhost.dispose();
         }
 
-        // FINALIZE
         graphics.dispose();
         bs.show();
     }
+
     @Override
     public boolean isKeyDown(int keyEvent) {
         return keys[keyEvent];

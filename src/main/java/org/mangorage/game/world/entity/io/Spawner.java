@@ -4,6 +4,7 @@ import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Position;
 import org.mangorage.game.world.resource.item.Item;
 import org.mangorage.game.world.registeries.Entities;
 
@@ -32,9 +33,7 @@ public final class Spawner extends EntityIO {
             return;
         }
 
-        // Manual spawn logic: ensure there is a connection and room at the entrance
         if (!outputs.isEmpty() && canAcceptNewItem()) {
-            // We use the same internal logic to queue an item
             acceptItem(new Item("MangoItem"));
         }
     }
@@ -44,9 +43,30 @@ public final class Spawner extends EntityIO {
         renderConnectionsAndItems(ctx, Color.GRAY, Color.YELLOW, 16);
 
         ctx.submit(g -> {
-            var b = getBoundingBox();
+            Position pos = getPosition();
+            var box = getBoundingBox();
+
             g.setColor(Color.BLUE);
-            g.fillRect(b.x(), b.y(), b.width(), b.height());
+
+            // Render using LOCAL bounding box + WORLD position
+            for (var p : box.parts()) {
+                g.fillRect(
+                        pos.x() + p.offsetX(),
+                        pos.y() + p.offsetY(),
+                        p.width(),
+                        p.height()
+                );
+            }
+
+            // If no parts defined, fallback to full box
+            if (box.parts().isEmpty()) {
+                g.fillRect(
+                        pos.x(),
+                        pos.y(),
+                        box.width(),
+                        box.height()
+                );
+            }
         });
     }
 }

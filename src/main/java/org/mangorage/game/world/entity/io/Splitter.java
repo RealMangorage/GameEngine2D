@@ -4,6 +4,7 @@ import org.mangorage.game.input.MouseButton;
 import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Position;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
@@ -33,17 +34,47 @@ public final class Splitter extends EntityIO {
 
     @Override
     public void render(RenderContext ctx) {
-        // Custom colors for Splitter: Orange items, 12px size
+
         renderConnectionsAndItems(ctx, Color.GRAY, Color.ORANGE, 12);
 
         ctx.submit(g -> {
-            var b = getBoundingBox();
+            Position pos = getPosition();
+            var box = getBoundingBox();
+
+            int x = pos.x();
+            int y = pos.y();
+
+            // body
             g.setColor(new Color(60, 60, 100));
-            g.fillRect(b.x(), b.y(), b.width(), b.height());
+
+            if (box.parts().isEmpty()) {
+                g.fillRect(x, y, box.width(), box.height());
+                g.setColor(Color.WHITE);
+                g.drawRect(x, y, box.width(), box.height());
+                g.drawString("S", x + 4, y + 12);
+                return;
+            }
+
+            // multipart rendering (safe future-proofing)
+            for (var p : box.parts()) {
+                g.fillRect(
+                        x + p.offsetX(),
+                        y + p.offsetY(),
+                        p.width(),
+                        p.height()
+                );
+
+                g.setColor(Color.WHITE);
+                g.drawRect(
+                        x + p.offsetX(),
+                        y + p.offsetY(),
+                        p.width(),
+                        p.height()
+                );
+            }
 
             g.setColor(Color.WHITE);
-            g.drawRect(b.x(), b.y(), b.width(), b.height());
-            g.drawString("S", b.x() + 4, b.y() + 12);
+            g.drawString("S", x + 4, y + 12);
         });
     }
 }

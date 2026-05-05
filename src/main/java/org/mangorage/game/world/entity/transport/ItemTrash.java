@@ -4,6 +4,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.pos.BoundingBox;
+import org.mangorage.game.world.pos.Position;
 import org.mangorage.game.world.resource.item.Item;
 import org.mangorage.game.world.resource.item.IItemReceiver;
 import org.mangorage.game.world.registeries.Entities;
@@ -18,21 +19,25 @@ public final class ItemTrash extends Entity implements IItemReceiver {
 
 	@Override
 	public boolean acceptItem(Item item) {
-		// consume the item
-        System.out.println("Trashed item: " + item.name());
+		System.out.println("Trashed item: " + item.name());
 		return true;
 	}
 
 	@Override
 	public void render(RenderContext ctx) {
+
 		ctx.submit(g -> {
-			var b = getBoundingBox();
+			Position pos = getPosition();
+			var box = getBoundingBox();
+
+			int x = pos.x();
+			int y = pos.y();
+
 			g.setColor(Color.RED);
-			g.fillRect(b.x(), b.y(), b.width(), b.height());
+			g.fillRect(x, y, box.width(), box.height());
+
 			g.setColor(Color.WHITE);
-			g.drawString("TRASH", b.x() + 2, b.y() + 12);
+			g.drawString("TRASH", x + 2, y + 12);
 		});
 	}
 }
-
-
