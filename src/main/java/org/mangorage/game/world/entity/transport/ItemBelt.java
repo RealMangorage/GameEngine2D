@@ -18,8 +18,6 @@ public final class ItemBelt extends Entity implements IItemReceiver {
 
     private final List<MovingItem> items = new ArrayList<>();
 
-    // use Entity-facing so rotation is universal
-
     private double beltSpeed = 0.9;
     private double spacing = 0.18;
 
@@ -30,49 +28,28 @@ public final class ItemBelt extends Entity implements IItemReceiver {
     }
 
     @Override
-    public boolean acceptItem(Item item, org.mangorage.game.world.pos.Position source) {
-        // place item at projected position along belt based on source position
+    public boolean acceptItem(Item item, Position source) {
         Point start = getBeltStart();
         Point end = getBeltEnd();
 
-        double dx = end.x - start.x;
-        double dy = end.y - start.y;
-        double len2 = dx * dx + dy * dy;
+        double desired = projectSourceToProgress(source, start, end);
 
-        double t = 0.0;
-        if (len2 > 0.0001) {
-            double sx = source.x() - start.x;
-            double sy = source.y() - start.y;
-            t = (sx * dx + sy * dy) / len2;
-        }
+        if (!canInsertAt(desired)) return false;
 
-        double desired = Math.max(0.0, Math.min(1.0, t));
-
-        // ensure spacing: find insertion index
-        if (items.isEmpty()) {
-            items.add(new MovingItem(item, desired));
-            return true;
-        }
-        // find index to keep items sorted DESCENDING by progress (front-most at index 0)
         int idx = 0;
         while (idx < items.size() && items.get(idx).progress > desired) idx++;
-
-        // check previous (ahead)
-        if (idx - 1 >= 0) {
-            if (items.get(idx - 1).progress - desired < spacing) return false;
-        }
-
-        // check next (behind)
-        if (idx < items.size()) {
-            if (desired - items.get(idx).progress < spacing) return false;
-        }
 
         items.add(idx, new MovingItem(item, desired));
         return true;
     }
 
-    private boolean canAcceptNewItem() {
-        return items.isEmpty() || items.get(items.size() - 1).progress >= spacing;
+    @Override
+    public boolean canAcceptAt(Position source) {
+        Point start = getBeltStart();
+        Point end = getBeltEnd();
+
+        double desired = projectSourceToProgress(source, start, end);
+        return canInsertAt(desired);
     }
 
     @Override
@@ -80,34 +57,45 @@ public final class ItemBelt extends Entity implements IItemReceiver {
         if (items.isEmpty()) return;
 
         double dt = delta / 1000.0;
+
         for (int i = 0; i < items.size(); i++) {
             MovingItem current = items.get(i);
-
             double proposed = Math.min(1.0, current.progress + dt * beltSpeed);
 
             if (i == 0) {
-                // front-most moves freely up to proposed
-                current.progress = proposed;
+                Entity target = getTargetReceiver();
+                Point end = getBeltEnd();
+
+                double maxProgress = 1.0;
+
+                if (target instanceof IItemReceiver receiver) {
+                    Position outputPos = new Position(end.x, end.y, 0);
+
+                    if (!receiver.canAcceptAt(outputPos)) {
+                        maxProgress = 1.0 - spacing;
+                    }
+                }
+
+                current.progress = Math.min(proposed, maxProgress);
 
                 if (current.progress >= 1.0) {
-                    Entity target = getTargetReceiver();
-                    Point end = getBeltEnd();
                     if (target instanceof IItemReceiver receiver) {
                         if (receiver.acceptItem(current.item, new Position(end.x, end.y, 0))) {
                             items.remove(0);
                             i--;
                         } else {
-                            // hold at the end
-                            current.progress = 1.0;
+                            current.progress = 1.0 - spacing;
                         }
                     } else {
                         current.progress = 1.0;
                     }
                 }
+
             } else {
                 MovingItem prev = items.get(i - 1);
                 double maxAllowed = prev.progress - spacing;
                 double newProgress = Math.min(proposed, maxAllowed);
+
                 if (newProgress > current.progress) {
                     current.progress = newProgress;
                 }
@@ -115,30 +103,58 @@ public final class ItemBelt extends Entity implements IItemReceiver {
         }
     }
 
-    // ----------------------------
-    // WORLD HELPERS
-    // ----------------------------
+    // --------------------------------------------------
+    // INSERTION HELPERS
+    // --------------------------------------------------
 
-    private int worldX(int localX) {
-        Position p = getPosition();
-        return p.x() + localX;
+    private double projectSourceToProgress(Position source, Point start, Point end) {
+        double dx = end.x - start.x;
+        double dy = end.y - start.y;
+        double len2 = dx * dx + dy * dy;
+
+        double t = 0.0;
+
+        if (len2 > 0.0001) {
+            double sx = source.x() - start.x;
+            double sy = source.y() - start.y;
+            t = (sx * dx + sy * dy) / len2;
+        }
+
+        return Math.max(0.0, Math.min(1.0, t));
     }
 
-    private int worldY(int localY) {
-        Position p = getPosition();
-        return p.y() + localY;
+    private boolean canInsertAt(double desired) {
+        if (items.isEmpty()) return true;
+
+        int idx = 0;
+        while (idx < items.size() && items.get(idx).progress > desired) idx++;
+
+        if (idx - 1 >= 0) {
+            if (items.get(idx - 1).progress - desired < spacing) return false;
+        }
+
+        if (idx < items.size()) {
+            if (desired - items.get(idx).progress < spacing) return false;
+        }
+
+        return true;
     }
 
-    // ----------------------------
+    // --------------------------------------------------
     // TARGET DETECTION
-    // ----------------------------
+    // --------------------------------------------------
 
     private Entity getTargetReceiver() {
-        var b = getBoundingBox();
+        BoundingBox b = getBoundingBox();
         Position pos = getPosition();
 
-        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.width() : b.height();
-        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.height() : b.width();
+        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.width()
+                : b.height();
+
+        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.height()
+                : b.width();
 
         int probeX = pos.x() + w / 2;
         int probeY = pos.y() + h / 2;
@@ -153,20 +169,26 @@ public final class ItemBelt extends Entity implements IItemReceiver {
         return getWorld().getEntityAt(probeX, probeY);
     }
 
-    // ----------------------------
+    // --------------------------------------------------
     // RENDERING
-    // ----------------------------
+    // --------------------------------------------------
 
     @Override
     public void render(RenderContext ctx) {
-
-        var box = getBoundingBox();
+        BoundingBox box = getBoundingBox();
         Position pos = getPosition();
 
         ctx.submit(g -> {
             g.setColor(new Color(70, 70, 70));
-            int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
-            int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
+
+            int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                    ? box.width()
+                    : box.height();
+
+            int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                    ? box.height()
+                    : box.width();
+
             g.fillRect(pos.x(), pos.y(), w, h);
         });
 
@@ -192,20 +214,27 @@ public final class ItemBelt extends Entity implements IItemReceiver {
 
         ctx.submit(g -> {
             g.setColor(Color.WHITE);
-            int w2 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
-            int h2 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
-            g.drawRect(pos.x(), pos.y(), w2, h2);
+
+            int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                    ? box.width()
+                    : box.height();
+
+            int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                    ? box.height()
+                    : box.width();
+
+            g.drawRect(pos.x(), pos.y(), w, h);
         });
     }
 
-    // ----------------------------
-    // ARROW
-    // ----------------------------
-
     private void renderArrow(Graphics2D g, Position pos, BoundingBox b) {
+        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.width()
+                : b.height();
 
-        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.width() : b.height();
-        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.height() : b.width();
+        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.height()
+                : b.width();
 
         int cx = pos.x() + w / 2;
         int cy = pos.y() + h / 2;
@@ -241,51 +270,57 @@ public final class ItemBelt extends Entity implements IItemReceiver {
         g.fillPolygon(arrow);
     }
 
-    // ----------------------------
-    // BELT ENDPOINTS (FIXED)
-    // ----------------------------
+    // --------------------------------------------------
+    // BELT ENDPOINTS
+    // --------------------------------------------------
 
     private Point getBeltStart() {
-        var b = getBoundingBox();
+        BoundingBox b = getBoundingBox();
         Position pos = getPosition();
 
-        int w2 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.width() : b.height();
-        int h2 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.height() : b.width();
+        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.width()
+                : b.height();
+
+        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.height()
+                : b.width();
 
         return switch (getFacing()) {
-            case EAST -> new Point(pos.x() + ITEM_RADIUS, pos.y() + h2 / 2);
-            case WEST -> new Point(pos.x() + w2 - ITEM_RADIUS, pos.y() + h2 / 2);
-            case SOUTH -> new Point(pos.x() + w2 / 2, pos.y() + ITEM_RADIUS);
-            case NORTH -> new Point(pos.x() + w2 / 2, pos.y() + h2 - ITEM_RADIUS);
+            case EAST -> new Point(pos.x() + ITEM_RADIUS, pos.y() + h / 2);
+            case WEST -> new Point(pos.x() + w - ITEM_RADIUS, pos.y() + h / 2);
+            case SOUTH -> new Point(pos.x() + w / 2, pos.y() + ITEM_RADIUS);
+            case NORTH -> new Point(pos.x() + w / 2, pos.y() + h - ITEM_RADIUS);
         };
     }
 
     private Point getBeltEnd() {
-        var b = getBoundingBox();
+        BoundingBox b = getBoundingBox();
         Position pos = getPosition();
 
-        int w3 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.width() : b.height();
-        int h3 = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? b.height() : b.width();
+        int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.width()
+                : b.height();
+
+        int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST)
+                ? b.height()
+                : b.width();
 
         return switch (getFacing()) {
-            case EAST -> new Point(pos.x() + w3 - ITEM_RADIUS, pos.y() + h3 / 2);
-            case WEST -> new Point(pos.x() + ITEM_RADIUS, pos.y() + h3 / 2);
-            case SOUTH -> new Point(pos.x() + w3 / 2, pos.y() + h3 - ITEM_RADIUS);
-            case NORTH -> new Point(pos.x() + w3 / 2, pos.y() + ITEM_RADIUS);
+            case EAST -> new Point(pos.x() + w - ITEM_RADIUS, pos.y() + h / 2);
+            case WEST -> new Point(pos.x() + ITEM_RADIUS, pos.y() + h / 2);
+            case SOUTH -> new Point(pos.x() + w / 2, pos.y() + h - ITEM_RADIUS);
+            case NORTH -> new Point(pos.x() + w / 2, pos.y() + ITEM_RADIUS);
         };
     }
 
-    // ----------------------------
+    // --------------------------------------------------
     // DATA
-    // ----------------------------
+    // --------------------------------------------------
 
     private static final class MovingItem {
         final Item item;
-        double progress = 0.0;
-
-        MovingItem(Item item) {
-            this.item = item;
-        }
+        double progress;
 
         MovingItem(Item item, double progress) {
             this.item = item;

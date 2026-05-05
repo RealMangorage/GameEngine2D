@@ -9,4 +9,8 @@ public interface IItemReceiver {
      * their surface the item should be inserted.
      */
     boolean acceptItem(Item item, Position source);
+
+    default boolean canAcceptAt(Position source) {
+        return true;
+    }
 }
