@@ -1,4 +1,4 @@
-package org.mangorage.game.render;
+package org.mangorage.game.client.render.core;
 
 import java.awt.Graphics2D;
 import java.util.*;

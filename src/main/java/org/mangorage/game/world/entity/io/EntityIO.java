@@ -1,6 +1,6 @@
 package org.mangorage.game.world.entity.io;
 
-import org.mangorage.game.render.RenderContext;
+import org.mangorage.game.client.render.core.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.entity.EntityType;

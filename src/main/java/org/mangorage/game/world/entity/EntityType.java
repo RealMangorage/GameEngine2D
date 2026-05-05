@@ -67,9 +67,7 @@ public final class EntityType<T extends Entity> {
         if (boxFactory == null) {
             box = new BoundingBox(width, height);
         } else {
-            box = new BoundingBox(width, height, (builder, w, h) ->
-                    boxFactory.build(builder::addPart, w, h)
-            );
+            box = new BoundingBox(width, height, (builder, w, h) -> boxFactory.build(builder::addPart, w, h));
         }
 
         T entity = factory.create(world, box);

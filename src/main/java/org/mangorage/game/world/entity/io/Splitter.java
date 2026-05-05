@@ -1,7 +1,7 @@
 package org.mangorage.game.world.entity.io;
 
 import org.mangorage.game.input.MouseButton;
-import org.mangorage.game.render.RenderContext;
+import org.mangorage.game.client.render.core.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Position;
