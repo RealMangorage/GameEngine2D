@@ -10,6 +10,7 @@ import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.misc.PlacingMode;
 import org.mangorage.game.world.registeries.Entities;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 
 import javax.swing.*;
 import java.awt.*;
@@ -46,6 +47,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
     private int selectedType = 0;
     private PlacingMode placingMode = PlacingMode.OFF;
+    private Facing currentRotation = Facing.EAST;
 
     public Game() {
         JFrame frame = new JFrame("Simple Game Framework");
@@ -188,6 +190,15 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 };
             }
 
+            if (isKeyDown(KeyEvent.VK_R)) {
+                // rotate selected entity if any, otherwise rotate the currently selected rotation for placement
+                if (selected != null) {
+                    selected.rotate();
+                } else {
+                    currentRotation = currentRotation.next();
+                }
+            }
+
             lastCheckedInputs = 0;
         }
 
@@ -220,10 +231,18 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
             } else if (button == MouseButton.LEFT && placingMode == PlacingMode.PLACE) {
 
-                world.addEntity(
-                        Entities.ENTITY_TYPES.get(selectedType)
-                                .create(world, worldPos)
-                );
+                var newEntity = Entities.ENTITY_TYPES.get(selectedType).create(world, worldPos);
+                // apply rotation first so we can center correctly
+                newEntity.setFacing(currentRotation);
+
+                var bb = newEntity.getBoundingBox();
+                int w = (newEntity.getFacing() == Facing.EAST || newEntity.getFacing() == Facing.WEST) ? bb.width() : bb.height();
+                int h = (newEntity.getFacing() == Facing.EAST || newEntity.getFacing() == Facing.WEST) ? bb.height() : bb.width();
+
+                Position centered = new Position(worldPos.x() - w / 2, worldPos.y() - h / 2, 0);
+                newEntity.setPosition(centered);
+
+                world.addEntity(newEntity);
             }
         }
     }
@@ -256,12 +275,16 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
             ghostEntity = Entities.ENTITY_TYPES.get(selectedType).create(world, mouseWorld);
 
-            int offsetX = ghostEntity.getBoundingBox().width() / 2;
-            int offsetY = ghostEntity.getBoundingBox().height() / 2;
+            // apply rotation first so bounding box extents can be computed correctly
+            ghostEntity.setFacing(currentRotation);
+
+            var gb = ghostEntity.getBoundingBox();
+            int w = (ghostEntity.getFacing() == Facing.EAST || ghostEntity.getFacing() == Facing.WEST) ? gb.width() : gb.height();
+            int h = (ghostEntity.getFacing() == Facing.EAST || ghostEntity.getFacing() == Facing.WEST) ? gb.height() : gb.width();
 
             Position centered = new Position(
-                    mouseWorld.x() - offsetX,
-                    mouseWorld.y() - offsetY,
+                    mouseWorld.x() - w / 2,
+                    mouseWorld.y() - h / 2,
                     0
             );
 
@@ -283,6 +306,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
                     10, 40
             );
             g.drawString("Placing Mode: " + placingMode + " (F4)", 10, 60);
+            g.drawString("Rotation: " + (selected != null ? selected.getFacing() : currentRotation), 10, 80);
         });
 
         gameContext.render(graphics);
@@ -304,7 +328,7 @@ public class Game extends Canvas implements Runnable, InputHandler {
 
                 var pos = ghostEntity.getPosition();
 
-                for (var p : ghostEntity.getBoundingBox().parts()) {
+                for (var p : ghostEntity.getBoundingBox().parts(ghostEntity.getFacing())) {
                     gGhost.drawRect(
                             pos.x() + p.offsetX(),
                             pos.y() + p.offsetY(),

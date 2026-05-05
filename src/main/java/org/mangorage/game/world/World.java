@@ -4,6 +4,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.entity.Entity;
 import org.mangorage.game.world.misc.InputHandler;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -53,13 +54,19 @@ public final class World {
 
                     var bb = e.getBoundingBox();
 
-                    for (var p : bb.parts()) {
-                        g.drawRect(
-                                pos.x() + p.offsetX(),
-                                pos.y() + p.offsetY(),
-                                p.width(),
-                                p.height()
-                        );
+                    if (bb.parts().isEmpty()) {
+                        int w = (e.getFacing() == Facing.EAST || e.getFacing() == Facing.WEST) ? bb.width() : bb.height();
+                        int h = (e.getFacing() == Facing.EAST || e.getFacing() == Facing.WEST) ? bb.height() : bb.width();
+                        g.drawRect(pos.x(), pos.y(), w, h);
+                    } else {
+                        for (var p : bb.parts(e.getFacing())) {
+                            g.drawRect(
+                                    pos.x() + p.offsetX(),
+                                    pos.y() + p.offsetY(),
+                                    p.width(),
+                                    p.height()
+                            );
+                        }
                     }
                 }
             });
@@ -74,9 +81,10 @@ public final class World {
 
             Position pos = e.getPosition();
 
-            if (e.getBoundingBox().contains(pos.x(), pos.y(), worldX, worldY)) {
+            if (e.getBoundingBox().contains(pos.x(), pos.y(), worldX, worldY, e.getFacing())) {
                 return e;
             }
+
         }
         return null;
     }

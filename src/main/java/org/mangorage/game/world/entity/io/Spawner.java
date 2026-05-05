@@ -5,6 +5,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 import org.mangorage.game.world.resource.item.Item;
 import org.mangorage.game.world.registeries.Entities;
 
@@ -34,7 +35,8 @@ public final class Spawner extends EntityIO {
         }
 
         if (!outputs.isEmpty() && canAcceptNewItem()) {
-            acceptItem(new Item("MangoItem"));
+            Point c = getCenter();
+            acceptItem(new Item("MangoItem"), new org.mangorage.game.world.pos.Position(c.x, c.y, 0));
         }
     }
 
@@ -48,24 +50,20 @@ public final class Spawner extends EntityIO {
 
             g.setColor(Color.BLUE);
 
-            // Render using LOCAL bounding box + WORLD position
-            for (var p : box.parts()) {
-                g.fillRect(
-                        pos.x() + p.offsetX(),
-                        pos.y() + p.offsetY(),
-                        p.width(),
-                        p.height()
-                );
-            }
-
-            // If no parts defined, fallback to full box
+            // Render using LOCAL bounding box + WORLD position (rotation-aware)
             if (box.parts().isEmpty()) {
-                g.fillRect(
-                        pos.x(),
-                        pos.y(),
-                        box.width(),
-                        box.height()
-                );
+                int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
+                int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
+                g.fillRect(pos.x(), pos.y(), w, h);
+            } else {
+                for (var p : box.parts(getFacing())) {
+                    g.fillRect(
+                            pos.x() + p.offsetX(),
+                            pos.y() + p.offsetY(),
+                            p.width(),
+                            p.height()
+                    );
+                }
             }
         });
     }

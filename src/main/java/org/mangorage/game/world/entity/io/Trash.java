@@ -4,6 +4,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 import org.mangorage.game.world.resource.item.Item;
 import org.mangorage.game.world.registeries.Entities;
 
@@ -24,7 +25,7 @@ public final class Trash extends EntityIO {
     }
 
     @Override
-    public boolean acceptItem(Item item) {
+    public boolean acceptItem(Item item, org.mangorage.game.world.pos.Position source) {
         return true;
     }
 
@@ -45,17 +46,20 @@ public final class Trash extends EntityIO {
 
             g.setColor(Color.RED);
 
+            // If no parts defined, draw full rect but account for rotation (swap extents for N/W)
             if (box.parts().isEmpty()) {
-                g.fillRect(x, y, box.width(), box.height());
+                int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
+                int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
+                g.fillRect(x, y, w, h);
                 g.setColor(Color.LIGHT_GRAY);
-                g.drawRect(x, y, box.width(), box.height());
+                g.drawRect(x, y, w, h);
                 g.setColor(Color.WHITE);
                 g.drawString("VOID", x + 2, y + 15);
                 return;
             }
 
-            // multipart-safe rendering (future-proof)
-            for (var p : box.parts()) {
+            // multipart-safe rendering (rotation-aware)
+            for (var p : box.parts(getFacing())) {
                 int px = x + p.offsetX();
                 int py = y + p.offsetY();
 

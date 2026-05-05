@@ -5,6 +5,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
@@ -44,13 +45,19 @@ public final class RelayBox extends EntityIO {
 
             g.setColor(Color.DARK_GRAY);
 
-            for (var p : box.parts()) {
-                g.fillRect(
-                        baseX + p.offsetX(),
-                        baseY + p.offsetY(),
-                        p.width(),
-                        p.height()
-                );
+            if (box.parts().isEmpty()) {
+                int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
+                int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
+                g.fillRect(baseX, baseY, w, h);
+            } else {
+                for (var p : box.parts(getFacing())) {
+                    g.fillRect(
+                            baseX + p.offsetX(),
+                            baseY + p.offsetY(),
+                            p.width(),
+                            p.height()
+                    );
+                }
             }
         });
     }

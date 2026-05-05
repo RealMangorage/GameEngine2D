@@ -60,7 +60,7 @@ public abstract class EntityIO extends Entity implements IItemReceiver, INode {
     }
 
     @Override
-    public boolean acceptItem(Item item) {
+    public boolean acceptItem(Item item, org.mangorage.game.world.pos.Position source) {
         if (outputs.isEmpty() || !canAcceptNewItem()) return false;
         items.add(new MovingItem(item, outputs.get(nextOutputIndex)));
         nextOutputIndex = (nextOutputIndex + 1) % outputs.size();
@@ -73,19 +73,33 @@ public abstract class EntityIO extends Entity implements IItemReceiver, INode {
 
     @Override
     public void update(double delta) {
+        double dt = delta / 1000.0;
         for (int i = 0; i < items.size(); i++) {
             MovingItem current = items.get(i);
-            boolean canMove = (i == 0) || (items.get(i - 1).progress - current.progress >= itemSpacing);
 
-            if (i == 0 && current.progress >= 1.0) {
-                if (current.target.acceptItem(current.item)) {
-                    items.remove(0);
-                    i--;
+            double proposed = Math.min(1.0, current.progress + dt * moveSpeed);
+
+            if (i == 0) {
+                current.progress = proposed;
+
+                if (current.progress >= 1.0) {
+                    // pass this entity's center as the source position for the receiver
+                    Point c = getCenter();
+                    if (current.target.acceptItem(current.item, new org.mangorage.game.world.pos.Position(c.x, c.y, 0))) {
+                        items.remove(0);
+                        i--;
+                    } else {
+                        current.progress = 1.0;
+                    }
                 }
-                continue;
+            } else {
+                MovingItem prev = items.get(i - 1);
+                double maxAllowed = prev.progress - itemSpacing;
+                double newProgress = Math.min(proposed, maxAllowed);
+                if (newProgress > current.progress) {
+                    current.progress = newProgress;
+                }
             }
-
-            if (canMove) current.progress = Math.min(1.0, current.progress + delta * moveSpeed);
         }
     }
 

@@ -5,6 +5,7 @@ import org.mangorage.game.render.RenderContext;
 import org.mangorage.game.world.World;
 import org.mangorage.game.world.pos.BoundingBox;
 import org.mangorage.game.world.pos.Position;
+import org.mangorage.game.world.pos.Facing;
 import org.mangorage.game.world.registeries.Entities;
 
 import java.awt.*;
@@ -48,15 +49,17 @@ public final class Splitter extends EntityIO {
             g.setColor(new Color(60, 60, 100));
 
             if (box.parts().isEmpty()) {
-                g.fillRect(x, y, box.width(), box.height());
+                int w = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.width() : box.height();
+                int h = (getFacing() == Facing.EAST || getFacing() == Facing.WEST) ? box.height() : box.width();
+                g.fillRect(x, y, w, h);
                 g.setColor(Color.WHITE);
-                g.drawRect(x, y, box.width(), box.height());
+                g.drawRect(x, y, w, h);
                 g.drawString("S", x + 4, y + 12);
                 return;
             }
 
-            // multipart rendering (safe future-proofing)
-            for (var p : box.parts()) {
+            // multipart rendering (rotation-aware)
+            for (var p : box.parts(getFacing())) {
                 g.fillRect(
                         x + p.offsetX(),
                         y + p.offsetY(),
