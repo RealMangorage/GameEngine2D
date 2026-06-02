@@ -18,6 +18,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,14 +95,13 @@ public class Game extends Canvas implements Runnable, InputHandler {
             public void mousePressed(MouseEvent e) {
                 mouseEvents.add(new GameMouseEvent(e.getX(), e.getY(), e.getButton()));
             }
+        });
 
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                if (isKeyDown(KeyEvent.VK_SHIFT)) {
-                    worldLayer.zoomCamera(-e.getPreciseWheelRotation() * 0.1);
-                } else {
-                    worldLayer.scrollSelectedType((int) e.getPreciseWheelRotation());
-                }
+        addMouseWheelListener(e -> {
+            if (isKeyDown(KeyEvent.VK_SHIFT)) {
+                worldLayer.zoomCamera(-e.getPreciseWheelRotation() * 0.1);
+            } else {
+                worldLayer.scrollSelectedType((int) e.getPreciseWheelRotation());
             }
         });
 
@@ -112,6 +112,8 @@ public class Game extends Canvas implements Runnable, InputHandler {
                 mouseY = e.getY();
             }
         });
+
+        frame.setFocusable(true);
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
